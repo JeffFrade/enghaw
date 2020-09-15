@@ -1,0 +1,9 @@
+[submodule "enghawapi"]
+	path = enghawapi
+	url = https://github.com/JeffFrade/enghawapi
+[submodule "enghaw-crawlers"]
+	path = enghaw-crawlers
+	url = https://github.com/JeffFrade/enghaw-crawlers
+[submodule "enghaw-web"]
+	path = enghaw-web
+	url = https://github.com/JeffFrade/enghaw-web

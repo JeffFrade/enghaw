@@ -1,0 +1,84 @@
+version: '3'
+services:
+  api-php-fpm:
+    build: ./enghawapi/docker/php
+    image: enghaw/enghaw-enghaw-api:php-fpm
+    restart: on-failure
+    container_name: enghaw-enghaw-api-php-fpm
+    command: php-fpm
+    links:
+        - api-elasticsearch
+    volumes:
+      - ./:/enghaw-api
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'netstat -an | fgrep 9000 | fgrep -q LISTEN']
+      interval: 10s
+      timeout: 5s
+      retries: 2
+
+  api-nginx:
+    build: ./enghawapi/docker/nginx
+    image: enghaw/enghaw-enghaw-api:nginx
+    restart: on-failure
+    container_name: enghaw-enghaw-api-nginx
+    command: nginx -g "daemon off;"
+    links:
+      - api-php-fpm
+    ports:
+      - "${DOCKER_NGINX_PORT}:80"
+    volumes:
+      - ./enghawapi:/enghaw-api
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'netstat -an | fgrep 80 | fgrep -q LISTEN']
+      interval: 10s
+      timeout: 5s
+      retries: 2
+    
+  api-elasticsearch:
+    build: ./enghawapi/docker/elasticsearch
+    image: enghaw/enghaw-enghaw-api:elasticsearch
+    container_name: enghaw-enghaw-api-elasticsearch
+    environment:
+      - cluster.name=enghaw
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - ${DOCKER_ES_PORT}:9200
+    volumes:
+      - ./enghawapi/docker/elasticsearch/esdatadir:/usr/share/elasticsearch/data
+
+  crawlers-php-fpm:
+    build: ./enghaw-crawlers/docker/php
+    image: enghaw/enghaw-enghaw-crawlers:php-fpm
+    restart: on-failure
+    container_name: enghaw-enghaw-crawlers-php-fpm
+    command: php-fpm
+    volumes:
+      - ./enghaw-crawlers:/enghaw-crawlers
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'netstat -an | fgrep 9000 | fgrep -q LISTEN']
+      interval: 10s
+      timeout: 5s
+      retries: 2
+    
+  web-node:
+    build: ./enghaw-web/docker/node
+    image: enghaw/enghaw-enghaw-web:node
+    restart: on-failure
+    container_name: enghaw-enghaw-web-node
+    command: > 
+      bash -c "npm install && ng serve --host 0.0.0.0 --port 4200"
+    volumes:
+      - './enghaw-web:/enghaw-web' 
+    ports: 
+      - "${NODE_NG_PORT}:4200"
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'netstat -an | fgrep 4200 | fgrep -q LISTEN']
+      interval: 10s
+      timeout: 5s
+      retries: 2
